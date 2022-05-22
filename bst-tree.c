@@ -21,7 +21,14 @@ struct bst_tree {
 };
 
 #define bst_nil_guard(tree) &(tree)->nil_guard
-#define bst_node_is_nil(node) ((node) == bst_nil_guard(((node)->tree)))
+
+int bst_node_is_nil(struct bst_node* node) {
+    if (node == NULL) {
+        assert(0);
+        return 1;
+    }
+    return ((node) == bst_nil_guard(((node)->tree)));
+}
 
 ElemType bst_node_get_key(struct bst_node* node) {
     return node->key;
@@ -122,7 +129,7 @@ struct bst_node* _iterative_tree_search(struct bst_node* x, ElemType k) {
     return x;
 }
 
-struct bst_node* iterative_tree_search(struct bst_tree* tree, ElemType k) {
+struct bst_node* bst_find_node(struct bst_tree* tree, ElemType k) {
     return _iterative_tree_search(tree->root, k);
 }
 
@@ -201,12 +208,16 @@ void _do_general_rebalance(struct bst_node* unbalanced, struct bst_node* child) 
 }
 
 void _tree_insert_rebalance(struct bst_tree* tree, struct bst_node*node) {
-    int i;
+    int index = 0;
     struct bst_node* unbalanced = node;
-    for (i = 0; i < 4; ++i) {
+    for (;;) {
         int balance_factor;
         struct bst_node* child = unbalanced;
         unbalanced = unbalanced->parent;
+        /* printf("==== insert backtracking steps (%d) ====\n", ++index); */
+        if (bst_node_is_nil(unbalanced)) {
+            break;
+        }
         balance_factor = bst_node_balance_factor(unbalanced);
         if (abs(balance_factor) == 2) {
             _do_general_rebalance(unbalanced, child);
@@ -214,6 +225,7 @@ void _tree_insert_rebalance(struct bst_tree* tree, struct bst_node*node) {
         }
     }
     (void)tree;
+    (void)index;
 }
 
 void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
@@ -242,9 +254,10 @@ void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
     _tree_insert_rebalance(tree, z);
 }
 
-void bst_insert(struct bst_tree* tree, ElemType e) {
+int bst_insert(struct bst_tree* tree, ElemType e) {
     struct bst_node* node = bst_node_create(tree, e);
     _tree_insert(tree, node);
+    return 0;
 }
 
 void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
@@ -257,19 +270,20 @@ void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
     else {
         u->parent->right = v;
     }
-    /* if (v != bst_nil_guard(tree)) */ {
+    if (v != bst_nil_guard(tree)) {
         v->parent = u->parent;
     }
 }
 
 void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
-    int i;
+    int index = 0;
     struct bst_node* unbalanced = node;
-    for (i = 0; i < 4; ++i) {
+    for (;;) {
         int balance_factor;
         if (bst_node_is_nil(unbalanced)) {
             break;
         }
+        /* printf("==== delete backtracking steps (%d) ====\n", ++index); */
         balance_factor = bst_node_balance_factor(unbalanced);
         if (abs(balance_factor) == 2) {
             struct bst_node* left = unbalanced->left;
@@ -296,23 +310,26 @@ void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
         }
         unbalanced = unbalanced->parent;
     }
+    (void)index;
 }
 
 
 void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
     struct bst_node* y;
+    struct bst_node* runner;
     if (z->left == bst_nil_guard(tree)) {
-        y = z->right;
+        runner = z->right;
         transplant(tree, z, z->right);
     }
     else if (z->right == bst_nil_guard(tree)) {
-        y = z->left;
+        runner = z->left;
         transplant(tree, z, z->left);
     }
     else {
         int bf = bst_node_balance_factor(z);
         if (bf >= 0) {
             y = _tree_minimum(z->right);
+            runner = y->parent;
             if (y->parent != z) {
                 transplant(tree, y, y->right);
                 y->right = z->right;
@@ -324,6 +341,7 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
         }
         else {
             y = _tree_maximum(z->left);
+            runner = y->parent;
             if (y->parent != z) {
                 transplant(tree, y, y->left);
                 y->left = z->left;
@@ -334,15 +352,17 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
             y->right->parent = y;
         }
     }
-    _tree_delete_rebalance(tree, bst_node_is_nil(y) ? z->parent : y);
+    _tree_delete_rebalance(tree, bst_node_is_nil(runner) ? z->parent : runner);
 }
 
-void bst_delete_node(struct bst_tree* tree, ElemType key) {
-    struct bst_node* x = iterative_tree_search(tree, key);
+int bst_delete_node(struct bst_tree* tree, ElemType key) {
+    struct bst_node* x = bst_find_node(tree, key);
     if (x != bst_nil_guard(tree)) {
         _tree_delete(tree, x);
         free(x);
+        return 0;
     }
+    return -1;
 }
 
 void _bst_destroy_node_recursive(struct bst_tree* tree, struct bst_node* node) {
