@@ -267,8 +267,11 @@ void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
     else if (u == u->parent->left) {
         u->parent->left = v;
     }
-    else {
+    else if (u == u->parent->right){
         u->parent->right = v;
+    }
+    else {
+        assert(0);
     }
     if (v != bst_nil_guard(tree)) {
         v->parent = u->parent;
@@ -278,6 +281,7 @@ void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
 void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
     int index = 0;
     struct bst_node* unbalanced = node;
+    struct bst_node* child = bst_nil_guard(tree);
     for (;;) {
         int balance_factor;
         if (bst_node_is_nil(unbalanced)) {
@@ -286,17 +290,10 @@ void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
         /* printf("==== delete backtracking steps (%d) ====\n", ++index); */
         balance_factor = bst_node_balance_factor(unbalanced);
         if (abs(balance_factor) == 2) {
-            struct bst_node* left = unbalanced->left;
-            int left_bf = bst_node_balance_factor(left);
-            struct bst_node* right = unbalanced->right;
-            int right_bf = bst_node_balance_factor(right);
-            if (left_bf != 0 || right_bf != 0) {
-                if (abs(left_bf) == 1) {
-                    _do_general_rebalance(unbalanced, left);
-                }
-                else if (abs(right_bf) == 1) {
-                    _do_general_rebalance(unbalanced, right);
-                }
+            int child_bf = bst_node_balance_factor(child);
+            if (child_bf != 0) {
+                assert(abs(child_bf) == 1);
+                _do_general_rebalance(unbalanced, child);
             }
             else {
                 if (balance_factor == -2) {
@@ -306,19 +303,18 @@ void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
                     left_rotate(tree, unbalanced);
                 }
             }
-            break;
         }
+        child = unbalanced;
         unbalanced = unbalanced->parent;
     }
     (void)index;
 }
 
-
 void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
     struct bst_node* y;
     struct bst_node* runner;
     if (z->left == bst_nil_guard(tree)) {
-        runner = z->right;
+        runner = bst_node_is_nil(z->right) ? z->parent : z->right;
         transplant(tree, z, z->right);
     }
     else if (z->right == bst_nil_guard(tree)) {
@@ -329,11 +325,15 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
         int bf = bst_node_balance_factor(z);
         if (bf >= 0) {
             y = _tree_minimum(z->right);
-            runner = y->parent;
+            assert(bst_node_is_nil(y->left));
             if (y->parent != z) {
+                runner = y->parent;
                 transplant(tree, y, y->right);
                 y->right = z->right;
                 y->right->parent = y;
+            }
+            else {
+                runner = y;
             }
             transplant(tree, z, y);
             y->left = z->left;
@@ -341,25 +341,31 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
         }
         else {
             y = _tree_maximum(z->left);
-            runner = y->parent;
+            assert(bst_node_is_nil(y->right));
             if (y->parent != z) {
+                runner = y->parent;
                 transplant(tree, y, y->left);
                 y->left = z->left;
                 y->left->parent = y;
+            }
+            else {
+                runner = y;
             }
             transplant(tree, z, y);
             y->right = z->right;
             y->right->parent = y;
         }
     }
-    _tree_delete_rebalance(tree, bst_node_is_nil(runner) ? z->parent : runner);
+    assert(runner != bst_nil_guard(tree));
+
+    _tree_delete_rebalance(tree, runner);
 }
 
 int bst_delete_node(struct bst_tree* tree, ElemType key) {
-    struct bst_node* x = bst_find_node(tree, key);
-    if (x != bst_nil_guard(tree)) {
-        _tree_delete(tree, x);
-        free(x);
+    struct bst_node* node = bst_find_node(tree, key);
+    if (node != bst_nil_guard(tree)) {
+        _tree_delete(tree, node);
+        free(node);
         return 0;
     }
     return -1;
