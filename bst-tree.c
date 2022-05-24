@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <stdint.h>
+#include <memory.h>
 #include <assert.h>
 #include "bst-tree.h"
 
@@ -8,7 +10,7 @@ struct bst_tree;
 
 /* self-balancing binary search tree */
 struct bst_node {
-    ElemType key;
+    void *key;
     struct bst_node *left;
     struct bst_node *right;
     struct bst_node* parent;
@@ -18,6 +20,8 @@ struct bst_node {
 struct bst_tree {
     struct bst_node *root;
     struct bst_node nil_guard;
+    bst_compare cmp;
+    bst_destroy destroy;
 };
 
 #define bst_nil_guard(tree) &(tree)->nil_guard
@@ -30,7 +34,7 @@ int bst_node_is_nil(struct bst_node* node) {
     return ((node) == bst_nil_guard(((node)->tree)));
 }
 
-ElemType bst_node_get_key(struct bst_node* node) {
+const void* bst_node_get_key(const struct bst_node* node) {
     return node->key;
 }
 
@@ -41,11 +45,14 @@ void _bst_node_init(struct bst_node* node, struct bst_tree* tree) {
     node->tree = tree;
 }
 
-struct bst_tree * bst_tree_create(void){
+struct bst_tree * bst_tree_create(bst_compare cmp, bst_destroy destroy){
     struct bst_tree *tree = (struct bst_tree*) calloc(1, sizeof(*tree));
     if (tree) {
         _bst_node_init(&tree->nil_guard, tree);
         tree->root = bst_nil_guard(tree);
+        assert(cmp);
+        tree->cmp = cmp;
+        tree->destroy = destroy;
     }
     return tree;
 }
@@ -55,11 +62,13 @@ bool bst_tree_is_empty(struct bst_tree* tree) {
     return tree->root == bst_nil_guard(tree);
 }
 
-struct bst_node* bst_node_create(struct bst_tree* tree, ElemType e) {
+static struct bst_node* bst_node_create(struct bst_tree* tree, void* data, size_t size) {
     struct bst_node* node = (struct bst_node*)calloc(1, sizeof(*node));
     if (node) {
         _bst_node_init(node, tree);
-        node->key = e;
+        node->key = calloc(size, sizeof(uint8_t));
+        assert(node->key);
+        memcpy(node->key, data, size);
     }
     return node;
 }
@@ -99,38 +108,20 @@ void bst_inorder_walk(struct bst_tree* tree, node_walk_cb cb, void* p) {
     _inorder_tree_walk(tree->root, cb, p);
 }
 
-struct bst_node* _tree_search(struct bst_node*x, ElemType k) {
-    struct bst_tree* tree = x->tree;
-    if (x == bst_nil_guard(tree) || k == x->key) {
-        return x;
-    }
-    if (k < x->key) {
-        return _tree_search(x->left, k);
-    }
-    else {
-        return _tree_search(x->right, k);
-    }
-}
-
-struct bst_node* tree_search(struct bst_tree* tree, int k) {
-    return _tree_search(tree->root, k);
-}
-
-struct bst_node* _iterative_tree_search(struct bst_node* x, ElemType k) {
-    struct bst_tree* tree = x->tree;
-    while (x != bst_nil_guard(tree) && k != x->key) {
-        if (k < x->key) {
-            x = x->left;
+const struct bst_node* _iterative_tree_search(const struct bst_node* x, const void* key) {
+    const struct bst_tree* tree = x->tree;
+    while (x != bst_nil_guard(tree)) {
+        int cmp = tree->cmp(key, x->key);
+        if (cmp == 0) {
+            break;
         }
-        else {
-            x = x->right;
-        }
+        x = (cmp < 0) ? x->left : x->right;
     }
     return x;
 }
 
-struct bst_node* bst_find_node(struct bst_tree* tree, ElemType k) {
-    return _iterative_tree_search(tree->root, k);
+const struct bst_node* bst_find_node(const struct bst_tree* tree, const void* key) {
+    return _iterative_tree_search(tree->root, key);
 }
 
 struct bst_node* _tree_minimum(struct bst_node* x) {
@@ -231,9 +222,10 @@ void _tree_insert_rebalance(struct bst_tree* tree, struct bst_node*node) {
 void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
     struct bst_node* y = bst_nil_guard(tree);
     struct bst_node* x = tree->root;
+    int cmp;
     while (x != bst_nil_guard(tree)) {
         y = x;
-        if (z->key < x->key) {
+        if ((cmp = tree->cmp(z->key, x->key)) < 0) {
             x = x->left;
         }
         else {
@@ -244,7 +236,7 @@ void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
     if (y == bst_nil_guard(tree)) {
         tree->root = z; /* tree was empty */
     }
-    else if (z->key < y->key) {
+    else if ((cmp = tree->cmp(z->key, y->key)) < 0) {
         y->left = z;
     }
     else {
@@ -254,8 +246,8 @@ void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
     _tree_insert_rebalance(tree, z);
 }
 
-int bst_insert(struct bst_tree* tree, ElemType e) {
-    struct bst_node* node = bst_node_create(tree, e);
+int bst_insert(struct bst_tree* tree, void* data, size_t size) {
+    struct bst_node* node = bst_node_create(tree, data, size);
     _tree_insert(tree, node);
     return 0;
 }
@@ -361,11 +353,20 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
     _tree_delete_rebalance(tree, runner);
 }
 
-int bst_delete_node(struct bst_tree* tree, ElemType key) {
-    struct bst_node* node = bst_find_node(tree, key);
+static void _destroy_node(struct bst_node* node) {
+    struct bst_tree* tree = node->tree;
+    if (tree->destroy) {
+        tree->destroy(node->key);
+    }
+    free(node->key);
+    free(node);
+}
+
+int bst_delete_node(struct bst_tree* tree, const void* key) {
+    struct bst_node* node = (struct bst_node*)bst_find_node(tree, key);
     if (node != bst_nil_guard(tree)) {
         _tree_delete(tree, node);
-        free(node);
+        _destroy_node(node);
         return 0;
     }
     return -1;
@@ -375,7 +376,7 @@ void _bst_destroy_node_recursive(struct bst_tree* tree, struct bst_node* node) {
     if (node != bst_nil_guard(tree)) {
         _bst_destroy_node_recursive(tree, node->left);
         _bst_destroy_node_recursive(tree, node->right);
-        free(node);
+        _destroy_node((struct bst_node*)node);
     }
 }
 
