@@ -348,9 +348,9 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
             y->right->parent = y;
         }
     }
-    assert(runner != bst_nil_guard(tree));
-
-    _tree_delete_rebalance(tree, runner);
+    if (runner != bst_nil_guard(tree)) {
+        _tree_delete_rebalance(tree, runner);
+    }
 }
 
 static void _destroy_node(struct bst_node* node) {
