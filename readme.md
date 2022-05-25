@@ -1,5 +1,5 @@
 
-# 平衡二叉樹
+# Self-balancing binary search tree 平衡二叉樹
 
 搜遍網絡找不到可用的 平衡二叉樹 的 C 語言實現。
 
