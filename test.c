@@ -92,6 +92,7 @@ void test_bst2(void)
         node = avl_find_node(t, &x);
         y = *(int*)avl_node_get_key(node);
         assert(y == x);
+        (void)y;
     }
 
     avl_inorder_walk(t, node_walk_cb2, NULL);
@@ -145,6 +146,7 @@ void test_avl_string(void) {
         node = avl_find_node(t, &strArr[i]);
         y = *(char**)avl_node_get_key(node);
         assert(strcmp(y, strArr[i]) == 0);
+        (void)y;
     }
 
     printf("\n==== test_avl_string ====\n");
@@ -176,6 +178,7 @@ void test_avl_string2(void) {
         node = avl_find_node(t, strArr[i]);
         y = (char*)avl_node_get_key(node);
         assert(strcmp(y, strArr[i]) == 0);
+        (void)y;
     }
 
     printf("\n==== test_avl_string2 ====\n");
