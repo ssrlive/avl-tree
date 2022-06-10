@@ -4,52 +4,52 @@
 #include <stdint.h>
 #include <memory.h>
 #include <assert.h>
-#include "bst-tree.h"
+#include "avl-tree.h"
 
-struct bst_tree;
+struct avl_tree;
 
 /* self-balancing binary search tree */
-struct bst_node {
+struct avl_node {
     void *key;
-    struct bst_node *left;
-    struct bst_node *right;
-    struct bst_node* parent;
-    struct bst_tree *tree;
+    struct avl_node *left;
+    struct avl_node *right;
+    struct avl_node* parent;
+    struct avl_tree *tree;
 };
 
-struct bst_tree {
-    struct bst_node *root;
-    struct bst_node nil_guard;
-    bst_compare cmp;
-    bst_destroy destroy;
+struct avl_tree {
+    struct avl_node *root;
+    struct avl_node nil_guard;
+    avl_compare cmp;
+    avl_destroy destroy;
 };
 
-#define bst_nil_guard(tree) &(tree)->nil_guard
+#define avl_nil_guard(tree) &(tree)->nil_guard
 
-int bst_node_is_nil(struct bst_node* node) {
+int avl_node_is_nil(struct avl_node* node) {
     if (node == NULL) {
         assert(0);
         return 1;
     }
-    return ((node) == bst_nil_guard(((node)->tree)));
+    return ((node) == avl_nil_guard(((node)->tree)));
 }
 
-const void* bst_node_get_key(const struct bst_node* node) {
+const void* avl_node_get_key(const struct avl_node* node) {
     return node->key;
 }
 
-void _bst_node_init(struct bst_node* node, struct bst_tree* tree) {
-    node->left = bst_nil_guard(tree);
-    node->right = bst_nil_guard(tree);
-    node->parent = bst_nil_guard(tree);
+void _avl_node_init(struct avl_node* node, struct avl_tree* tree) {
+    node->left = avl_nil_guard(tree);
+    node->right = avl_nil_guard(tree);
+    node->parent = avl_nil_guard(tree);
     node->tree = tree;
 }
 
-struct bst_tree * bst_tree_create(bst_compare cmp, bst_destroy destroy){
-    struct bst_tree *tree = (struct bst_tree*) calloc(1, sizeof(*tree));
+struct avl_tree * avl_tree_create(avl_compare cmp, avl_destroy destroy){
+    struct avl_tree *tree = (struct avl_tree*) calloc(1, sizeof(*tree));
     if (tree) {
-        _bst_node_init(&tree->nil_guard, tree);
-        tree->root = bst_nil_guard(tree);
+        _avl_node_init(&tree->nil_guard, tree);
+        tree->root = avl_nil_guard(tree);
         assert(cmp);
         tree->cmp = cmp;
         tree->destroy = destroy;
@@ -57,15 +57,15 @@ struct bst_tree * bst_tree_create(bst_compare cmp, bst_destroy destroy){
     return tree;
 }
 
-bool bst_tree_is_empty(struct bst_tree* tree) {
+bool avl_tree_is_empty(struct avl_tree* tree) {
     assert(tree);
-    return tree->root == bst_nil_guard(tree);
+    return tree->root == avl_nil_guard(tree);
 }
 
-static struct bst_node* bst_node_create(struct bst_tree* tree, void* data, size_t size) {
-    struct bst_node* node = (struct bst_node*)calloc(1, sizeof(*node));
+static struct avl_node* avl_node_create(struct avl_tree* tree, void* data, size_t size) {
+    struct avl_node* node = (struct avl_node*)calloc(1, sizeof(*node));
     if (node) {
-        _bst_node_init(node, tree);
+        _avl_node_init(node, tree);
         node->key = calloc(size, sizeof(uint8_t));
         assert(node->key);
         memcpy(node->key, data, size);
@@ -73,14 +73,14 @@ static struct bst_node* bst_node_create(struct bst_tree* tree, void* data, size_
     return node;
 }
 
-int _node_height(struct bst_node* node) {
+int _node_height(struct avl_node* node) {
     int h_left, h_right;
 
-    if (bst_node_is_nil(node)) {
+    if (avl_node_is_nil(node)) {
         return 0;
     }
-    h_left = bst_node_is_nil(node->left) ? 0 : _node_height(node->left);
-    h_right = bst_node_is_nil(node->right) ? 0 : _node_height(node->right);
+    h_left = avl_node_is_nil(node->left) ? 0 : _node_height(node->left);
+    h_right = avl_node_is_nil(node->right) ? 0 : _node_height(node->right);
 
 #ifndef MAX
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -89,13 +89,13 @@ int _node_height(struct bst_node* node) {
     return MAX(h_left, h_right) + 1;
 }
 
-int bst_node_balance_factor(struct bst_node* node) {
+int avl_node_balance_factor(struct avl_node* node) {
     return _node_height(node->right) - _node_height(node->left);
 }
 
-void _inorder_tree_walk(struct bst_node* x, node_walk_cb cb, void* p) {
-    struct bst_tree* tree = x->tree;
-    if (x != bst_nil_guard(tree)) {
+void _inorder_tree_walk(struct avl_node* x, node_walk_cb cb, void* p) {
+    struct avl_tree* tree = x->tree;
+    if (x != avl_nil_guard(tree)) {
         _inorder_tree_walk(x->left, cb, p);
         if (cb) {
             cb(x, p);
@@ -104,13 +104,13 @@ void _inorder_tree_walk(struct bst_node* x, node_walk_cb cb, void* p) {
     }
 }
 
-void bst_inorder_walk(struct bst_tree* tree, node_walk_cb cb, void* p) {
+void avl_inorder_walk(struct avl_tree* tree, node_walk_cb cb, void* p) {
     _inorder_tree_walk(tree->root, cb, p);
 }
 
-const struct bst_node* _iterative_tree_search(const struct bst_node* x, const void* key) {
-    const struct bst_tree* tree = x->tree;
-    while (x != bst_nil_guard(tree)) {
+const struct avl_node* _iterative_tree_search(const struct avl_node* x, const void* key) {
+    const struct avl_tree* tree = x->tree;
+    while (x != avl_nil_guard(tree)) {
         int cmp = tree->cmp(key, x->key);
         if (cmp == 0) {
             break;
@@ -120,59 +120,59 @@ const struct bst_node* _iterative_tree_search(const struct bst_node* x, const vo
     return x;
 }
 
-const struct bst_node* bst_find_node(const struct bst_tree* tree, const void* key) {
+const struct avl_node* avl_find_node(const struct avl_tree* tree, const void* key) {
     return _iterative_tree_search(tree->root, key);
 }
 
-struct bst_node* _tree_minimum(struct bst_node* x) {
-    struct bst_tree* tree = x->tree;
-    while (x->left != bst_nil_guard(tree)) {
+struct avl_node* _tree_minimum(struct avl_node* x) {
+    struct avl_tree* tree = x->tree;
+    while (x->left != avl_nil_guard(tree)) {
         x = x->left;
     }
     return x;
 }
 
 /*
-struct bst_node* tree_minimum(struct bst_tree* tree) {
+struct avl_node* tree_minimum(struct avl_tree* tree) {
     return _tree_minimum(tree->root);
 }
 */
 
-struct bst_node* _tree_maximum(struct bst_node* x) {
-    struct bst_tree* tree = x->tree;
-    while (x->right != bst_nil_guard(tree)) {
+struct avl_node* _tree_maximum(struct avl_node* x) {
+    struct avl_tree* tree = x->tree;
+    while (x->right != avl_nil_guard(tree)) {
         x = x->right;
     }
     return x;
 }
 
 /*
-struct bst_node* tree_maximum(struct bst_tree* tree) {
+struct avl_node* tree_maximum(struct avl_tree* tree) {
     return _tree_maximum(tree->root);
 }
 */
 
-struct bst_node* tree_successor(struct bst_node* x) {
-    struct bst_tree* tree = x->tree;
-    struct bst_node* y;
-    if (x->right != bst_nil_guard(tree)) {
+struct avl_node* tree_successor(struct avl_node* x) {
+    struct avl_tree* tree = x->tree;
+    struct avl_node* y;
+    if (x->right != avl_nil_guard(tree)) {
         return _tree_minimum(x->right);
     }
     y = x->parent;
-    while (y != bst_nil_guard(tree) && x == y->right) {
+    while (y != avl_nil_guard(tree) && x == y->right) {
         x = y;
         y = y->parent;
     }
     return y;
 }
 
-void left_rotate(struct bst_tree* tree, struct bst_node* y);
-void right_rotate(struct bst_tree* tree, struct bst_node* y);
+void left_rotate(struct avl_tree* tree, struct avl_node* y);
+void right_rotate(struct avl_tree* tree, struct avl_node* y);
 
-void _do_general_rebalance(struct bst_node* unbalanced, struct bst_node* child) {
-    int balance_factor = bst_node_balance_factor(unbalanced);
-    int child_bf = bst_node_balance_factor(child);
-    struct bst_tree* tree = unbalanced->tree;
+void _do_general_rebalance(struct avl_node* unbalanced, struct avl_node* child) {
+    int balance_factor = avl_node_balance_factor(unbalanced);
+    int child_bf = avl_node_balance_factor(child);
+    struct avl_tree* tree = unbalanced->tree;
     assert(tree == child->tree);
     assert(unbalanced == child->parent);
     if ((balance_factor == -2) && (child_bf == -1)) {
@@ -198,18 +198,18 @@ void _do_general_rebalance(struct bst_node* unbalanced, struct bst_node* child) 
     }
 }
 
-void _tree_insert_rebalance(struct bst_tree* tree, struct bst_node*node) {
+void _tree_insert_rebalance(struct avl_tree* tree, struct avl_node* node) {
     int index = 0;
-    struct bst_node* unbalanced = node;
+    struct avl_node* unbalanced = node;
     for (;;) {
         int balance_factor;
-        struct bst_node* child = unbalanced;
+        struct avl_node* child = unbalanced;
         unbalanced = unbalanced->parent;
         /* printf("==== insert backtracking steps (%d) ====\n", ++index); */
-        if (bst_node_is_nil(unbalanced)) {
+        if (avl_node_is_nil(unbalanced)) {
             break;
         }
-        balance_factor = bst_node_balance_factor(unbalanced);
+        balance_factor = avl_node_balance_factor(unbalanced);
         if (abs(balance_factor) == 2) {
             _do_general_rebalance(unbalanced, child);
             break;
@@ -219,11 +219,11 @@ void _tree_insert_rebalance(struct bst_tree* tree, struct bst_node*node) {
     (void)index;
 }
 
-void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
-    struct bst_node* y = bst_nil_guard(tree);
-    struct bst_node* x = tree->root;
+void _tree_insert(struct avl_tree* tree, struct avl_node* z) {
+    struct avl_node* y = avl_nil_guard(tree);
+    struct avl_node* x = tree->root;
     int cmp;
-    while (x != bst_nil_guard(tree)) {
+    while (x != avl_nil_guard(tree)) {
         y = x;
         if ((cmp = tree->cmp(z->key, x->key)) < 0) {
             x = x->left;
@@ -233,7 +233,7 @@ void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
         }
     }
     z->parent = y;
-    if (y == bst_nil_guard(tree)) {
+    if (y == avl_nil_guard(tree)) {
         tree->root = z; /* tree was empty */
     }
     else if ((cmp = tree->cmp(z->key, y->key)) < 0) {
@@ -246,14 +246,14 @@ void _tree_insert(struct bst_tree* tree, struct bst_node* z) {
     _tree_insert_rebalance(tree, z);
 }
 
-int bst_insert(struct bst_tree* tree, void* data, size_t size) {
-    struct bst_node* node = bst_node_create(tree, data, size);
+int avl_insert(struct avl_tree* tree, void* data, size_t size) {
+    struct avl_node* node = avl_node_create(tree, data, size);
     _tree_insert(tree, node);
     return 0;
 }
 
-void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
-    if (u->parent == bst_nil_guard(tree)) {
+void transplant(struct avl_tree* tree, struct avl_node* u, struct avl_node* v) {
+    if (u->parent == avl_nil_guard(tree)) {
         tree->root = v;
     }
     else if (u == u->parent->left) {
@@ -265,24 +265,24 @@ void transplant(struct bst_tree* tree, struct bst_node* u, struct bst_node* v) {
     else {
         assert(0);
     }
-    if (v != bst_nil_guard(tree)) {
+    if (v != avl_nil_guard(tree)) {
         v->parent = u->parent;
     }
 }
 
-void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
+void _tree_delete_rebalance(struct avl_tree* tree, struct avl_node* node) {
     int index = 0;
-    struct bst_node* unbalanced = node;
-    struct bst_node* child = bst_nil_guard(tree);
+    struct avl_node* unbalanced = node;
+    struct avl_node* child = avl_nil_guard(tree);
     for (;;) {
         int balance_factor;
-        if (bst_node_is_nil(unbalanced)) {
+        if (avl_node_is_nil(unbalanced)) {
             break;
         }
         /* printf("==== delete backtracking steps (%d) ====\n", ++index); */
-        balance_factor = bst_node_balance_factor(unbalanced);
+        balance_factor = avl_node_balance_factor(unbalanced);
         if (abs(balance_factor) == 2) {
-            int child_bf = bst_node_balance_factor(child);
+            int child_bf = avl_node_balance_factor(child);
             if (child_bf != 0) {
                 assert(abs(child_bf) == 1);
                 _do_general_rebalance(unbalanced, child);
@@ -302,22 +302,22 @@ void _tree_delete_rebalance(struct bst_tree* tree, struct bst_node* node) {
     (void)index;
 }
 
-void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
-    struct bst_node* y;
-    struct bst_node* runner;
-    if (z->left == bst_nil_guard(tree)) {
-        runner = bst_node_is_nil(z->right) ? z->parent : z->right;
+void _tree_delete(struct avl_tree* tree, struct avl_node* z) {
+    struct avl_node* y;
+    struct avl_node* runner;
+    if (z->left == avl_nil_guard(tree)) {
+        runner = avl_node_is_nil(z->right) ? z->parent : z->right;
         transplant(tree, z, z->right);
     }
-    else if (z->right == bst_nil_guard(tree)) {
+    else if (z->right == avl_nil_guard(tree)) {
         runner = z->left;
         transplant(tree, z, z->left);
     }
     else {
-        int bf = bst_node_balance_factor(z);
+        int bf = avl_node_balance_factor(z);
         if (bf >= 0) {
             y = _tree_minimum(z->right);
-            assert(bst_node_is_nil(y->left));
+            assert(avl_node_is_nil(y->left));
             if (y->parent != z) {
                 runner = y->parent;
                 transplant(tree, y, y->right);
@@ -333,7 +333,7 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
         }
         else {
             y = _tree_maximum(z->left);
-            assert(bst_node_is_nil(y->right));
+            assert(avl_node_is_nil(y->right));
             if (y->parent != z) {
                 runner = y->parent;
                 transplant(tree, y, y->left);
@@ -348,13 +348,13 @@ void _tree_delete(struct bst_tree* tree, struct bst_node* z) {
             y->right->parent = y;
         }
     }
-    if (runner != bst_nil_guard(tree)) {
+    if (runner != avl_nil_guard(tree)) {
         _tree_delete_rebalance(tree, runner);
     }
 }
 
-static void _destroy_node(struct bst_node* node) {
-    struct bst_tree* tree = node->tree;
+static void _destroy_node(struct avl_node* node) {
+    struct avl_tree* tree = node->tree;
     if (tree->destroy) {
         tree->destroy(node->key);
     }
@@ -362,9 +362,9 @@ static void _destroy_node(struct bst_node* node) {
     free(node);
 }
 
-int bst_delete_node(struct bst_tree* tree, const void* key) {
-    struct bst_node* node = (struct bst_node*)bst_find_node(tree, key);
-    if (node != bst_nil_guard(tree)) {
+int avl_delete_node(struct avl_tree* tree, const void* key) {
+    struct avl_node* node = (struct avl_node*)avl_find_node(tree, key);
+    if (node != avl_nil_guard(tree)) {
         _tree_delete(tree, node);
         _destroy_node(node);
         return 0;
@@ -372,30 +372,30 @@ int bst_delete_node(struct bst_tree* tree, const void* key) {
     return -1;
 }
 
-void _bst_destroy_node_recursive(struct bst_tree* tree, struct bst_node* node) {
-    if (node != bst_nil_guard(tree)) {
-        _bst_destroy_node_recursive(tree, node->left);
-        _bst_destroy_node_recursive(tree, node->right);
-        _destroy_node((struct bst_node*)node);
+void _avl_destroy_node_recursive(struct avl_tree* tree, struct avl_node* node) {
+    if (node != avl_nil_guard(tree)) {
+        _avl_destroy_node_recursive(tree, node->left);
+        _avl_destroy_node_recursive(tree, node->right);
+        _destroy_node((struct avl_node*)node);
     }
 }
 
-void bst_destroy_tree(struct bst_tree* tree) {
-    _bst_destroy_node_recursive(tree, tree->root);
+void avl_destroy_tree(struct avl_tree* tree) {
+    _avl_destroy_node_recursive(tree, tree->root);
     free(tree);
 }
 
-void left_rotate(struct bst_tree* tree, struct bst_node* x) {
-    struct bst_node* y = x->right; /* set y */
+void left_rotate(struct avl_tree* tree, struct avl_node* x) {
+    struct avl_node* y = x->right; /* set y */
 
     /* turn y's left subtree into x's right subtree */
     x->right = y->left;
 
-    if (y->left != bst_nil_guard(tree)) {
+    if (y->left != avl_nil_guard(tree)) {
         y->left->parent = x;
     }
     y->parent = x->parent; /* link x's parent to y */
-    if (x->parent == bst_nil_guard(tree)) {
+    if (x->parent == avl_nil_guard(tree)) {
         tree->root = y;
     }
     else if (x == x->parent->left) {
@@ -408,14 +408,14 @@ void left_rotate(struct bst_tree* tree, struct bst_node* x) {
     x->parent = y;
 }
 
-void right_rotate(struct bst_tree* tree, struct bst_node* y) {
-    struct bst_node* x = y->left;
+void right_rotate(struct avl_tree* tree, struct avl_node* y) {
+    struct avl_node* x = y->left;
     y->left = x->right;
-    if (x->right != bst_nil_guard(tree)) {
+    if (x->right != avl_nil_guard(tree)) {
         x->right->parent = y;
     }
     x->parent = y->parent;
-    if (y->parent == bst_nil_guard(tree)) {
+    if (y->parent == avl_nil_guard(tree)) {
         tree->root = x;
     }
     else if (y == y->parent->right) {
