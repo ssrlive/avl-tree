@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <memory.h>
 #include <assert.h>
@@ -57,7 +56,7 @@ struct avl_tree * avl_tree_create(avl_compare cmp, avl_destroy destroy){
     return tree;
 }
 
-bool avl_tree_is_empty(struct avl_tree* tree) {
+int avl_tree_is_empty(struct avl_tree* tree) {
     assert(tree);
     return tree->root == avl_nil_guard(tree);
 }

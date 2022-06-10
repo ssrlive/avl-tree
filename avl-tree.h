@@ -15,6 +15,7 @@ typedef int (*avl_compare)(const void*, const void*);
 typedef void (*avl_destroy)(void*);
 
 struct avl_tree* avl_tree_create(avl_compare cmp, avl_destroy destroy);
+int avl_tree_is_empty(struct avl_tree* tree);
 int avl_insert(struct avl_tree* tree, void* data, size_t size);
 
 const struct avl_node* avl_find_node(const struct avl_tree* tree, const void* key);
