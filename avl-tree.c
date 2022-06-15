@@ -9,15 +9,15 @@ struct avl_tree;
 
 /* self-balancing binary search tree */
 struct avl_node {
-    void *key;
-    struct avl_node *left;
-    struct avl_node *right;
-    struct avl_node *parent;
-    struct avl_tree *tree;
+    void* key;
+    struct avl_node* left;
+    struct avl_node* right;
+    struct avl_node* parent;
+    struct avl_tree* tree;
 };
 
 struct avl_tree {
-    struct avl_node *root;
+    struct avl_node* root;
     struct avl_node nil_guard;
     avl_compare cmp;
     avl_destroy destroy;
@@ -25,7 +25,7 @@ struct avl_tree {
 
 #define avl_nil_guard(tree) &(tree)->nil_guard
 
-int avl_node_is_nil(struct avl_node *node)
+int avl_node_is_nil(struct avl_node* node)
 {
     if (node == NULL) {
         assert(0);
@@ -34,12 +34,12 @@ int avl_node_is_nil(struct avl_node *node)
     return ((node) == avl_nil_guard(((node)->tree)));
 }
 
-const void *avl_node_get_key(const struct avl_node *node)
+const void* avl_node_get_key(const struct avl_node* node)
 {
     return node->key;
 }
 
-void _avl_node_init(struct avl_node *node, struct avl_tree *tree)
+void _avl_node_init(struct avl_node* node, struct avl_tree* tree)
 {
     node->left = avl_nil_guard(tree);
     node->right = avl_nil_guard(tree);
@@ -47,9 +47,9 @@ void _avl_node_init(struct avl_node *node, struct avl_tree *tree)
     node->tree = tree;
 }
 
-struct avl_tree *avl_tree_create(avl_compare cmp, avl_destroy destroy)
+struct avl_tree* avl_tree_create(avl_compare cmp, avl_destroy destroy)
 {
-    struct avl_tree *tree = (struct avl_tree *)calloc(1, sizeof(*tree));
+    struct avl_tree* tree = (struct avl_tree*)calloc(1, sizeof(*tree));
     if (tree) {
         _avl_node_init(&tree->nil_guard, tree);
         tree->root = avl_nil_guard(tree);
@@ -60,16 +60,16 @@ struct avl_tree *avl_tree_create(avl_compare cmp, avl_destroy destroy)
     return tree;
 }
 
-int avl_tree_is_empty(struct avl_tree *tree)
+int avl_tree_is_empty(struct avl_tree* tree)
 {
     assert(tree);
     return tree->root == avl_nil_guard(tree);
 }
 
-static struct avl_node *avl_node_create(struct avl_tree *tree, void *data,
+static struct avl_node* avl_node_create(struct avl_tree* tree, void* data,
                                         size_t size)
 {
-    struct avl_node *node = (struct avl_node *)calloc(1, sizeof(*node));
+    struct avl_node* node = (struct avl_node*)calloc(1, sizeof(*node));
     if (node) {
         _avl_node_init(node, tree);
         node->key = calloc(size, sizeof(uint8_t));
@@ -79,7 +79,7 @@ static struct avl_node *avl_node_create(struct avl_tree *tree, void *data,
     return node;
 }
 
-int _node_height(struct avl_node *node)
+int _node_height(struct avl_node* node)
 {
     int h_left, h_right;
 
@@ -96,14 +96,14 @@ int _node_height(struct avl_node *node)
     return MAX(h_left, h_right) + 1;
 }
 
-int avl_node_balance_factor(struct avl_node *node)
+int avl_node_balance_factor(struct avl_node* node)
 {
     return _node_height(node->right) - _node_height(node->left);
 }
 
-void _inorder_tree_walk(struct avl_node *x, node_walk_cb cb, void *p)
+void _inorder_tree_walk(struct avl_node* x, node_walk_cb cb, void* p)
 {
-    struct avl_tree *tree = x->tree;
+    struct avl_tree* tree = x->tree;
     if (x != avl_nil_guard(tree)) {
         _inorder_tree_walk(x->left, cb, p);
         if (cb) {
@@ -113,15 +113,15 @@ void _inorder_tree_walk(struct avl_node *x, node_walk_cb cb, void *p)
     }
 }
 
-void avl_inorder_walk(struct avl_tree *tree, node_walk_cb cb, void *p)
+void avl_inorder_walk(struct avl_tree* tree, node_walk_cb cb, void* p)
 {
     _inorder_tree_walk(tree->root, cb, p);
 }
 
-const struct avl_node *_iterative_tree_search(const struct avl_node *x,
-                                              const void *key)
+const struct avl_node* _iterative_tree_search(const struct avl_node* x,
+                                              const void* key)
 {
-    const struct avl_tree *tree = x->tree;
+    const struct avl_tree* tree = x->tree;
     while (x != avl_nil_guard(tree)) {
         int cmp = tree->cmp(key, x->key);
         if (cmp == 0) {
@@ -132,15 +132,15 @@ const struct avl_node *_iterative_tree_search(const struct avl_node *x,
     return x;
 }
 
-const struct avl_node *avl_find_node(const struct avl_tree *tree,
-                                     const void *key)
+const struct avl_node* avl_find_node(const struct avl_tree* tree,
+                                     const void* key)
 {
     return _iterative_tree_search(tree->root, key);
 }
 
-struct avl_node *_tree_minimum(struct avl_node *x)
+struct avl_node* _tree_minimum(struct avl_node* x)
 {
-    struct avl_tree *tree = x->tree;
+    struct avl_tree* tree = x->tree;
     while (x->left != avl_nil_guard(tree)) {
         x = x->left;
     }
@@ -153,9 +153,9 @@ struct avl_node* tree_minimum(struct avl_tree* tree) {
 }
 */
 
-struct avl_node *_tree_maximum(struct avl_node *x)
+struct avl_node* _tree_maximum(struct avl_node* x)
 {
-    struct avl_tree *tree = x->tree;
+    struct avl_tree* tree = x->tree;
     while (x->right != avl_nil_guard(tree)) {
         x = x->right;
     }
@@ -168,10 +168,10 @@ struct avl_node* tree_maximum(struct avl_tree* tree) {
 }
 */
 
-struct avl_node *tree_successor(struct avl_node *x)
+struct avl_node* tree_successor(struct avl_node* x)
 {
-    struct avl_tree *tree = x->tree;
-    struct avl_node *y;
+    struct avl_tree* tree = x->tree;
+    struct avl_node* y;
     if (x->right != avl_nil_guard(tree)) {
         return _tree_minimum(x->right);
     }
@@ -183,14 +183,14 @@ struct avl_node *tree_successor(struct avl_node *x)
     return y;
 }
 
-void left_rotate(struct avl_tree *tree, struct avl_node *y);
-void right_rotate(struct avl_tree *tree, struct avl_node *y);
+void left_rotate(struct avl_tree* tree, struct avl_node* y);
+void right_rotate(struct avl_tree* tree, struct avl_node* y);
 
-void _do_general_rebalance(struct avl_node *unbalanced, struct avl_node *child)
+void _do_general_rebalance(struct avl_node* unbalanced, struct avl_node* child)
 {
     int balance_factor = avl_node_balance_factor(unbalanced);
     int child_bf = avl_node_balance_factor(child);
-    struct avl_tree *tree = unbalanced->tree;
+    struct avl_tree* tree = unbalanced->tree;
     assert(tree == child->tree);
     assert(unbalanced == child->parent);
     if ((balance_factor == -2) && (child_bf == -1)) {
@@ -216,13 +216,13 @@ void _do_general_rebalance(struct avl_node *unbalanced, struct avl_node *child)
     }
 }
 
-void _tree_insert_rebalance(struct avl_tree *tree, struct avl_node *node)
+void _tree_insert_rebalance(struct avl_tree* tree, struct avl_node* node)
 {
     int index = 0;
-    struct avl_node *unbalanced = node;
+    struct avl_node* unbalanced = node;
     for (;;) {
         int balance_factor;
-        struct avl_node *child = unbalanced;
+        struct avl_node* child = unbalanced;
         unbalanced = unbalanced->parent;
         /* printf("==== insert backtracking steps (%d) ====\n", ++index); */
         if (avl_node_is_nil(unbalanced)) {
@@ -238,10 +238,10 @@ void _tree_insert_rebalance(struct avl_tree *tree, struct avl_node *node)
     (void)index;
 }
 
-void _tree_insert(struct avl_tree *tree, struct avl_node *z)
+void _tree_insert(struct avl_tree* tree, struct avl_node* z)
 {
-    struct avl_node *y = avl_nil_guard(tree);
-    struct avl_node *x = tree->root;
+    struct avl_node* y = avl_nil_guard(tree);
+    struct avl_node* x = tree->root;
     int cmp;
     while (x != avl_nil_guard(tree)) {
         y = x;
@@ -266,14 +266,14 @@ void _tree_insert(struct avl_tree *tree, struct avl_node *z)
     _tree_insert_rebalance(tree, z);
 }
 
-int avl_insert(struct avl_tree *tree, void *data, size_t size)
+int avl_insert(struct avl_tree* tree, void* data, size_t size)
 {
-    struct avl_node *node = avl_node_create(tree, data, size);
+    struct avl_node* node = avl_node_create(tree, data, size);
     _tree_insert(tree, node);
     return 0;
 }
 
-void transplant(struct avl_tree *tree, struct avl_node *u, struct avl_node *v)
+void transplant(struct avl_tree* tree, struct avl_node* u, struct avl_node* v)
 {
     if (u->parent == avl_nil_guard(tree)) {
         tree->root = v;
@@ -292,11 +292,11 @@ void transplant(struct avl_tree *tree, struct avl_node *u, struct avl_node *v)
     }
 }
 
-void _tree_delete_rebalance(struct avl_tree *tree, struct avl_node *node)
+void _tree_delete_rebalance(struct avl_tree* tree, struct avl_node* node)
 {
     int index = 0;
-    struct avl_node *unbalanced = node;
-    struct avl_node *child = avl_nil_guard(tree);
+    struct avl_node* unbalanced = node;
+    struct avl_node* child = avl_nil_guard(tree);
     for (;;) {
         int balance_factor;
         if (avl_node_is_nil(unbalanced)) {
@@ -325,10 +325,10 @@ void _tree_delete_rebalance(struct avl_tree *tree, struct avl_node *node)
     (void)index;
 }
 
-void _tree_delete(struct avl_tree *tree, struct avl_node *z)
+void _tree_delete(struct avl_tree* tree, struct avl_node* z)
 {
-    struct avl_node *y;
-    struct avl_node *runner;
+    struct avl_node* y;
+    struct avl_node* runner;
     if (z->left == avl_nil_guard(tree)) {
         runner = avl_node_is_nil(z->right) ? z->parent : z->right;
         transplant(tree, z, z->right);
@@ -377,9 +377,9 @@ void _tree_delete(struct avl_tree *tree, struct avl_node *z)
     }
 }
 
-static void _destroy_node(struct avl_node *node)
+static void _destroy_node(struct avl_node* node)
 {
-    struct avl_tree *tree = node->tree;
+    struct avl_tree* tree = node->tree;
     if (tree->destroy) {
         tree->destroy(node->key);
     }
@@ -387,9 +387,9 @@ static void _destroy_node(struct avl_node *node)
     free(node);
 }
 
-int avl_delete_node(struct avl_tree *tree, const void *key)
+int avl_delete_node(struct avl_tree* tree, const void* key)
 {
-    struct avl_node *node = (struct avl_node *)avl_find_node(tree, key);
+    struct avl_node* node = (struct avl_node*)avl_find_node(tree, key);
     if (node != avl_nil_guard(tree)) {
         _tree_delete(tree, node);
         _destroy_node(node);
@@ -398,24 +398,24 @@ int avl_delete_node(struct avl_tree *tree, const void *key)
     return -1;
 }
 
-void _avl_destroy_node_recursive(struct avl_tree *tree, struct avl_node *node)
+void _avl_destroy_node_recursive(struct avl_tree* tree, struct avl_node* node)
 {
     if (node != avl_nil_guard(tree)) {
         _avl_destroy_node_recursive(tree, node->left);
         _avl_destroy_node_recursive(tree, node->right);
-        _destroy_node((struct avl_node *)node);
+        _destroy_node((struct avl_node*)node);
     }
 }
 
-void avl_destroy_tree(struct avl_tree *tree)
+void avl_destroy_tree(struct avl_tree* tree)
 {
     _avl_destroy_node_recursive(tree, tree->root);
     free(tree);
 }
 
-void left_rotate(struct avl_tree *tree, struct avl_node *x)
+void left_rotate(struct avl_tree* tree, struct avl_node* x)
 {
-    struct avl_node *y = x->right; /* set y */
+    struct avl_node* y = x->right; /* set y */
 
     /* turn y's left subtree into x's right subtree */
     x->right = y->left;
@@ -437,9 +437,9 @@ void left_rotate(struct avl_tree *tree, struct avl_node *x)
     x->parent = y;
 }
 
-void right_rotate(struct avl_tree *tree, struct avl_node *y)
+void right_rotate(struct avl_tree* tree, struct avl_node* y)
 {
-    struct avl_node *x = y->left;
+    struct avl_node* x = y->left;
     y->left = x->right;
     if (x->right != avl_nil_guard(tree)) {
         x->right->parent = y;
